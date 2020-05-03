@@ -1,6 +1,7 @@
 package lagou.config;
 
 
+import com.google.common.collect.Lists;
 import lagou.pojo.Configuration;
 import lagou.pojo.MappedStatement;
 import org.dom4j.Document;
@@ -16,7 +17,7 @@ public class XMLMapperBuilder {
     private Configuration configuration;
 
     public XMLMapperBuilder(Configuration configuration) {
-        this.configuration =configuration;
+        this.configuration = configuration;
     }
 
     public void parse(InputStream inputStream) throws DocumentException {
@@ -25,8 +26,11 @@ public class XMLMapperBuilder {
         Element rootElement = document.getRootElement();
 
         String namespace = rootElement.attributeValue("namespace");
-
-        List<Element> list = rootElement.selectNodes("//select");
+        List<Element> list = Lists.newArrayList();
+        list.addAll(rootElement.selectNodes("//select"));
+        list.addAll(rootElement.selectNodes("//insert"));
+        list.addAll(rootElement.selectNodes("//update"));
+        list.addAll(rootElement.selectNodes("//delete"));
         for (Element element : list) {
             String id = element.attributeValue("id");
             String resultType = element.attributeValue("resultType");
@@ -37,10 +41,10 @@ public class XMLMapperBuilder {
             mappedStatement.setResultType(resultType);
             mappedStatement.setParamterType(paramterType);
             mappedStatement.setSql(sqlText);
-            String key = namespace+"."+id;
-            configuration.getMappedStatementMap().put(key,mappedStatement);
-
+            String key = namespace + "." + id;
+            configuration.getMappedStatementMap().put(key, mappedStatement);
         }
+
 
     }
 

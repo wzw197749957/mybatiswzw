@@ -1,7 +1,6 @@
 package lagou.sqlSession;
 
 
-
 import lagou.config.BoundSql;
 import lagou.pojo.Configuration;
 import lagou.pojo.MappedStatement;
@@ -19,7 +18,7 @@ import java.sql.ResultSetMetaData;
 import java.util.ArrayList;
 import java.util.List;
 
-public class simpleExecutor implements  Executor {
+public class simpleExecutor implements Executor {
 
 
     @Override                                                                                //user
@@ -28,7 +27,7 @@ public class simpleExecutor implements  Executor {
         Connection connection = configuration.getDataSource().getConnection();
 
         // 2. 获取sql语句 : select * from user where id = #{id} and username = #{username}
-            //转换sql语句： select * from user where id = ? and username = ? ，转换的过程中，还需要对#{}里面的值进行解析存储
+        //转换sql语句： select * from user where id = ? and username = ? ，转换的过程中，还需要对#{}里面的值进行解析存储
         String sql = mappedStatement.getSql();
         BoundSql boundSql = getBoundSql(sql);
 
@@ -36,9 +35,9 @@ public class simpleExecutor implements  Executor {
         PreparedStatement preparedStatement = connection.prepareStatement(boundSql.getSqlText());
 
         // 4. 设置参数
-            //获取到了参数的全路径
-         String paramterType = mappedStatement.getParamterType();
-         Class<?> paramtertypeClass = getClassType(paramterType);
+        //获取到了参数的全路径
+        String paramterType = mappedStatement.getParamterType();
+        Class<?> paramtertypeClass = getClassType(paramterType);
 
         List<ParameterMapping> parameterMappingList = boundSql.getParameterMappingList();
         for (int i = 0; i < parameterMappingList.size(); i++) {
@@ -51,56 +50,62 @@ public class simpleExecutor implements  Executor {
             declaredField.setAccessible(true);
             Object o = declaredField.get(params[0]);
 
-            preparedStatement.setObject(i+1,o);
+            preparedStatement.setObject(i + 1, o);
 
         }
 
 
         // 5. 执行sql
-        ResultSet resultSet = preparedStatement.executeQuery();
-        String resultType = mappedStatement.getResultType();
-        Class<?> resultTypeClass = getClassType(resultType);
+        if (mappedStatement.getSql().indexOf("select") > 0) {
+            ResultSet resultSet = preparedStatement.executeQuery();
 
-        ArrayList<Object> objects = new ArrayList<>();
+            String resultType = mappedStatement.getResultType();
+            Class<?> resultTypeClass = getClassType(resultType);
 
-        // 6. 封装返回结果集
-        while (resultSet.next()){
-            Object o =resultTypeClass.newInstance();
-            //元数据
-            ResultSetMetaData metaData = resultSet.getMetaData();
-            for (int i = 1; i <= metaData.getColumnCount(); i++) {
+            ArrayList<Object> objects = new ArrayList<>();
 
-                // 字段名
-                String columnName = metaData.getColumnName(i);
-                // 字段的值
-                Object value = resultSet.getObject(columnName);
+            // 6. 封装返回结果集
+            while (resultSet.next()) {
+                Object o = resultTypeClass.newInstance();
+                //元数据
+                ResultSetMetaData metaData = resultSet.getMetaData();
+                for (int i = 1; i <= metaData.getColumnCount(); i++) {
 
-                //使用反射或者内省，根据数据库表和实体的对应关系，完成封装
-                PropertyDescriptor propertyDescriptor = new PropertyDescriptor(columnName, resultTypeClass);
-                Method writeMethod = propertyDescriptor.getWriteMethod();
-                writeMethod.invoke(o,value);
+                    // 字段名
+                    String columnName = metaData.getColumnName(i);
+                    // 字段的值
+                    Object value = resultSet.getObject(columnName);
 
+                    //使用反射或者内省，根据数据库表和实体的对应关系，完成封装
+                    PropertyDescriptor propertyDescriptor = new PropertyDescriptor(columnName, resultTypeClass);
+                    Method writeMethod = propertyDescriptor.getWriteMethod();
+                    writeMethod.invoke(o, value);
+
+
+                }
+                objects.add(o);
 
             }
-            objects.add(o);
-
-        }
             return (List<E>) objects;
-
+        }else {
+            preparedStatement.execute();
+            return null;
+        }
     }
 
     private Class<?> getClassType(String paramterType) throws ClassNotFoundException {
-        if(paramterType!=null){
+        if (paramterType != null) {
             Class<?> aClass = Class.forName(paramterType);
             return aClass;
         }
-         return null;
+        return null;
 
     }
 
 
     /**
      * 完成对#{}的解析工作：1.将#{}使用？进行代替，2.解析出#{}里面的值进行存储
+     *
      * @param sql
      * @return
      */
@@ -113,8 +118,8 @@ public class simpleExecutor implements  Executor {
         //#{}里面解析出来的参数名称
         List<ParameterMapping> parameterMappings = parameterMappingTokenHandler.getParameterMappings();
 
-        BoundSql boundSql = new BoundSql(parseSql,parameterMappings);
-         return boundSql;
+        BoundSql boundSql = new BoundSql(parseSql, parameterMappings);
+        return boundSql;
 
     }
 

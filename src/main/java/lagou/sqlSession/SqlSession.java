@@ -14,5 +14,11 @@ public interface SqlSession {
     //为Dao接口生成代理实现类
     public <T> T getMapper(Class<?> mapperClass);
 
+    public void insert(String statementid, Object... params) throws Exception;
+
+    public void updateById(String statementid, Object... params) throws Exception;
+
+    public void deleteById(String statementid, Object... params) throws Exception;
+
 
 }
